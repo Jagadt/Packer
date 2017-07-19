@@ -1,6 +1,6 @@
-﻿$frontendrg = "Frontend-P1-RG"
+$frontendrg = "Frontend-P2-RG"
 $loc = "West Europe"
-$vnetname = "bgvnet"
+$vnetname = "bg1vnet"
 # Creating Front End Resource Group
 New-AzureRmResourceGroup -Name $frontendrg -Location $loc -Force;
 
