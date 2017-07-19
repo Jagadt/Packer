@@ -1,61 +1,55 @@
 {
-  "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/VM_IP.json",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "vmName": {
-      "type": "string"
-    },
-    "vmSize": {
-      "type": "string",
-      "defaultValue": "Standard_A1"
-    },
-    "adminUserName": {
-      "type": "string"
-    },
-    "adminPassword": {
-      "type": "securestring"
-    },
-    "networkInterfaceId": {
-      "type": "string"
-    }
+  "variables": {
+    "client_id": "a5025490-b4ba-4983-93b8-a15ec2dd4f9b",
+    "client_secret": "DlR7+wS/bqdCYkhB815bn2W4jYRFruD0jk1W4+fI1bM=",
+    "resource_group": "Frontend-P-RG",
+    "storage_account": "imgstora",
+    "subscription_id": "43e65b16-7d8e-40a6-b628-d991ce983612",
+    "tenant_id": "b7729f61-f3fd-4583-a00c-05c725eb850b",
+    "object_id": "07493c50-d405-4beb-b8a0-649b3698eb88"
   },
-  "resources": [
+  "builders": [
     {
-      "apiVersion": "2016-03-30",
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "[parameters('vmSize')]"
-        },
-        "storageProfile": {
-          "osDisk": {
-            "osType": "Windows",
-            "name": "packer-osDisk.ab8b2740-0abe-4f5d-8cf0-dea0b404e811.vhd",
-            "createOption": "FromImage",
-            "image": {
-              "uri": "https://imgstora.blob.core.windows.net/system/Microsoft.Compute/Images/images/packer-osDisk.ab8b2740-0abe-4f5d-8cf0-dea0b404e811.vhd"
-            },
-            "vhd": {
-              "uri": "https://imgstora.blob.core.windows.net/vmcontainer9f8c08e9-538c-4798-b495-8f06ba865ec1/osDisk.9f8c08e9-538c-4798-b495-8f06ba865ec1.vhd"
-            },
-            "caching": "ReadWrite"
-          }
-        },
-        "osProfile": {
-          "computerName": "[parameters('vmName')]",
-          "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]"
-        },
-        "networkProfile": {"networkInterfaces":[{"id":"[parameters('networkInterfaceId')]"}]},
-        "diagnosticsProfile": {
-          "bootDiagnostics": {
-            "enabled": false
-          }
-        },
-        "provisioningState": 0
+      "type": "azure-arm",
+        
+      "client_id": "{{user `client_id`}}",
+      "client_secret": "{{user `client_secret`}}",
+      "resource_group_name": "{{user `resource_group`}}",
+      "storage_account": "{{user `storage_account`}}",
+      "subscription_id": "{{user `subscription_id`}}",
+      "tenant_id": "{{user `tenant_id`}}",
+      "object_id": "{{user `object_id`}}",
+
+      "capture_container_name": "images",
+      "capture_name_prefix": "packer",
+
+      "os_type": "Windows",
+      "image_publisher": "MicrosoftWindowsServer",
+      "image_offer": "WindowsServer",
+      "image_sku": "2012-R2-Datacenter",
+      
+
+      "azure_tags": {
+        "dept": "engineering",
+        "task": "image deployment"
       },
-      "type": "Microsoft.Compute/virtualMachines",
-      "location": "westeurope",
-      "name": "[parameters('vmName')]"
+
+      "location": "West Europe",
+      "vm_size": "Standard_A1",
+      "communicator": "winrm",
+            "winrm_use_ssl": "true",
+            "winrm_insecure": "true",
+            "winrm_timeout": "15m",
+            "winrm_username": "packer"
     }
-  ]
+  ],
+  "provisioners": [
+
+{
+    "type": "powershell",
+    "inline": [
+      "if( Test-Path $Env:SystemRoot\\windows\\system32\\Sysprep\\unattend.xml ){ rm $Env:SystemRoot\\windows\\system32\\Sysprep\\unattend.xml -Force}",
+      "& $Env:SystemRoot\\System32\\Sysprep\\Sysprep.exe /oobe /generalize /shutdown /quiet"
+    ]
+  }]
 }
