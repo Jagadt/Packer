@@ -4,10 +4,10 @@
 
 
 
-$greenrg = "Green-P-RG" #This needs to be be changed with every new deployment
+$greenrg = "Green-P1-RG" #This needs to be be changed with every new deployment
 $frontendrg = "Frontend-P1-RG"
 $loc = "West Europe"
-$vnetname = "bgvnet"
+$vnetname = "bg1vnet"
 $LBFrontendNewPrivateIPAddress = "10.0.0.5" #This is the frontend IP address of the load balancer and should be changed with every new deployment and should be in the same range as the main subnet
 $vmssName = 'coevmssgreenbg'; #This has to be a unique name and needs to be changed with every new deployment
 $imageuri = "https://imagestor123.blob.core.windows.net/vhdimagecontainer/Win2012R2.vhd" #This has to be a new image URI with every new deployment
@@ -72,7 +72,7 @@ $vmssipconf_ILB_BEAddPools = $ILB.BackendAddressPools[0].Id
 
 $ipCfg = New-AzureRmVmssIPConfig -Name 'nic' -LoadBalancerBackendAddressPoolsId $vmssipconf_ILB_BEAddPools -SubnetId $subnetId;
 
-$vmss = New-AzureRmVmssConfig -Location $loc -SkuCapacity $numberofnodes -SkuName 'Standard_DS1' -UpgradePolicyMode 'automatic' `
+$vmss = New-AzureRmVmssConfig -Location $loc -SkuCapacity $numberofnodes -SkuName 'Standard_A1' -UpgradePolicyMode 'automatic' `
 | Add-AzureRmVmssNetworkInterfaceConfiguration -Name $backendSubnet -Primary $true -IPConfiguration $ipCfg `
 | Set-AzureRmVmssOSProfile -ComputerNamePrefix $vmNamePrefix -AdminUsername $adminUsername -AdminPassword $adminPassword `
 | Set-AzureRmVmssStorageProfile -Name "test" -OsDiskCreateOption 'FromImage' -OsDiskCaching ReadWrite -OsDiskOsType Windows -Image $imageuri `
