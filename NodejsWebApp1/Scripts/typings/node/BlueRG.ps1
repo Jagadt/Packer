@@ -4,10 +4,10 @@
 
 
 
-$bluerg = "Blue-P1-RG" #This needs to be be changed with every new deployment
-$frontendrg = "Frontend-P1-RG"
+$bluerg = "Blue-P2-RG" #This needs to be be changed with every new deployment
+$frontendrg = "Frontend-P2-RG"
 $loc = "West Europe"
-$vnetname = "bgvnet"
+$vnetname = "bg1vnet"
 $LBFrontendNewPrivateIPAddress = "10.0.0.6" #This is the frontend IP address of the load balancer and should be changed with every new deployment and should be in the same range as the main subnet
 $vmssName = 'coevmssgreenbg'; #This has to be a unique name and needs to be changed with every new deployment
 $imageuri = "https://imgstora.blob.core.windows.net/system/Microsoft.Compute/Images/images/packer-osDisk.ab8b2740-0abe-4f5d-8cf0-dea0b404e811.vhd" #new image URI with every new deployment
@@ -34,11 +34,11 @@ $numberofnodes = 1
 
 $backendSubnetName = "blue"
 
-New-AzureRmResourceGroup -Name $greenrg -Location $loc -Force;
+New-AzureRmResourceGroup -Name $bluerg -Location $loc -Force;
 
 $vnet= Get-AzureRmVirtualNetwork -Name $vnetname -ResourceGroupName $frontendrg
 
-$subnetMain = Get-AzureRmVirtualNetworkSubnetConfig -Name "green" -VirtualNetwork $vnet
+$subnetMain = Get-AzureRmVirtualNetworkSubnetConfig -Name "blue" -VirtualNetwork $vnet
 
 $subnetMain = $vnet.Subnets[3]
 
@@ -56,7 +56,7 @@ $nrplb = New-AzureRmLoadBalancer -ResourceGroupName $bluerg -Name "NRP-LB" -Loca
 
 $backendSubnet = Get-AzureRmVirtualNetworkSubnetConfig -Name $backendSubnetName -VirtualNetwork $vnet
 
-$backendnic1= New-AzureRmNetworkInterface -ResourceGroupName $greenrg -Name lb-nic1-be -Location $loc -Subnet $backendSubnet -LoadBalancerBackendAddressPool $nrplb.BackendAddressPools[0] -LoadBalancerInboundNatRule $nrplb.InboundNatRules[0]
+$backendnic1= New-AzureRmNetworkInterface -ResourceGroupName $bluerg -Name lb-nic1-be -Location $loc -Subnet $backendSubnet -LoadBalancerBackendAddressPool $nrplb.BackendAddressPools[0] -LoadBalancerInboundNatRule $nrplb.InboundNatRules[0]
 
 #The code below creates a vm scale set
 
@@ -72,7 +72,7 @@ $vmssipconf_ILB_BEAddPools = $ILB.BackendAddressPools[0].Id
 
 $ipCfg = New-AzureRmVmssIPConfig -Name 'nic' -LoadBalancerBackendAddressPoolsId $vmssipconf_ILB_BEAddPools -SubnetId $subnetId;
 
-$vmss = New-AzureRmVmssConfig -Location $loc -SkuCapacity $numberofnodes -SkuName 'Standard_DS1' -UpgradePolicyMode 'automatic' `
+$vmss = New-AzureRmVmssConfig -Location $loc -SkuCapacity $numberofnodes -SkuName 'Standard_A1' -UpgradePolicyMode 'automatic' `
 | Add-AzureRmVmssNetworkInterfaceConfiguration -Name $backendSubnet -Primary $true -IPConfiguration $ipCfg `
 | Set-AzureRmVmssOSProfile -ComputerNamePrefix $vmNamePrefix -AdminUsername $adminUsername -AdminPassword $adminPassword `
 | Set-AzureRmVmssStorageProfile -Name "test" -OsDiskCreateOption 'FromImage' -OsDiskCaching ReadWrite -OsDiskOsType Windows -Image $imageuri `
