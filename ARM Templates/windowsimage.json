@@ -1,0 +1,55 @@
+{
+  "variables": {
+    "client_id": "a5025490-b4ba-4983-93b8-a15ec2dd4f9b",
+    "client_secret": "DlR7+wS/bqdCYkhB815bn2W4jYRFruD0jk1W4+fI1bM=",
+    "resource_group": "Frontend-P-RG",
+    "storage_account": "imgstora",
+    "subscription_id": "43e65b16-7d8e-40a6-b628-d991ce983612",
+    "tenant_id": "b7729f61-f3fd-4583-a00c-05c725eb850b",
+    "object_id": "07493c50-d405-4beb-b8a0-649b3698eb88"
+  },
+  "builders": [
+    {
+      "type": "azure-arm",
+        
+      "client_id": "{{user `client_id`}}",
+      "client_secret": "{{user `client_secret`}}",
+      "resource_group_name": "{{user `resource_group`}}",
+      "storage_account": "{{user `storage_account`}}",
+      "subscription_id": "{{user `subscription_id`}}",
+      "tenant_id": "{{user `tenant_id`}}",
+      "object_id": "{{user `object_id`}}",
+
+      "capture_container_name": "images",
+      "capture_name_prefix": "packer",
+
+      "os_type": "Windows",
+      "image_publisher": "MicrosoftWindowsServer",
+      "image_offer": "WindowsServer",
+      "image_sku": "2012-R2-Datacenter",
+      
+
+      "azure_tags": {
+        "dept": "engineering",
+        "task": "image deployment"
+      },
+
+      "location": "West Europe",
+      "vm_size": "Standard_A1",
+      "communicator": "winrm",
+            "winrm_use_ssl": "true",
+            "winrm_insecure": "true",
+            "winrm_timeout": "15m",
+            "winrm_username": "packer"
+    }
+  ],
+  "provisioners": [
+
+{
+    "type": "powershell",
+    "inline": [
+      "if( Test-Path $Env:SystemRoot\\windows\\system32\\Sysprep\\unattend.xml ){ rm $Env:SystemRoot\\windows\\system32\\Sysprep\\unattend.xml -Force}",
+      "& $Env:SystemRoot\\System32\\Sysprep\\Sysprep.exe /oobe /generalize /shutdown /quiet"
+    ]
+  }]
+}
