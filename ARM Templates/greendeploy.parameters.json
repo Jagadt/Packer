@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "NRP_LB": {
+      "value": "NRP-LB"
+    },
+    "location": {
+      "value": "North Europe"
+    },
+    "virtualMachineScaleSetsname": {
+      "value": "coevmssgreenbg"
+    },
+    "sourceImageVhdUri": {
+      "value": "https://imgstora.blob.core.windows.net/images/packerosDiskd.vhd"
+    },
+    "SkuName": {
+      "value": "Standard_A1"
+    },
+    "SkuCapacity": {
+      "value": 1
+    },
+    "adminUsername": {
+      "value": "coeadmin"
+    },
+    "adminPassword": {
+      "value": "YUVanika!234"
+    },
+    "lbprivateipName": {
+      "value": "10.0.0.5"
+    }
+  }
+}

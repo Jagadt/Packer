@@ -1,0 +1,237 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "NRP_LB": {
+            "type": "String"
+        },
+        "location": {
+            "type": "string"
+        },
+        "virtualMachineScaleSetsname": {
+            "type": "String"
+        },
+        "sourceImageVhdUri": {
+            "type": "string",
+            "metadata": {
+                "description": "The source of the blob containing the custom image"
+            }
+        },
+        "SkuName": {
+            "type": "string",
+            "defaultValue": "Standard_A1"
+        },
+        "SkuCapacity": {
+            "type": "int",
+            "defaultValue": 1
+        },
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "Admin username on all VMs."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Admin password on all VMs."
+            }
+        },
+        "lbprivateipName": {
+            "type": "string",
+            "defaultValue": "10.0.0.5"
+        }
+    },
+    "variables": {
+        "virtualNetworkName": "bgvnet",
+        "subnetName": "green",
+        "subnetPrefix": "10.0.1.0/24",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
+        "networkApiVersion": "2017-06-01",
+        "storageApiVersion": "2017-06-01",
+        "computeApiVersion": "2017-03-30",
+        "autoscaleApiVersion": "2015-04-01",
+        "privateIPAddressID": "[resourceId('Microsoft.Network/privateIPAddresses',parameters('lbprivateipName'))]",
+        "nicName": "networkInterface1",
+        "nicId": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]",
+        "lbID": "[resourceId('Microsoft.Network/loadBalancers',parameters('NRP_LB'))]",
+        "lbFEName": "LB-Frontend",
+        "lbWebProbeName": "HealthProbe",
+        "lbprobeIntervalInSeconds": "15",
+        "lbnumberOfProbes": "2",
+        "lbprobeRequestPath": "index.html",
+        "lbbackEndLBPort": "80",
+        "lbfrontendport": "80",
+        "lbbackendport": "80",
+        "lbBEAddressPool": "LB-backend",
+        "lbFEIPConfD": "[concat(variables('lbID'),'/frontendIPConfigurations/',variables('lbFEName'))]",
+        "lbBEAddressPoolID": "[concat(variables('lbID'),'/backendAddressPools/',variables('lbBEAddressPool'))]",
+        "lbWebProbeID": "[concat(variables('lbID'),'/probes/',variables('lbWebProbeName'))]",
+        "imageName": "vmsstest"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/images",
+            "apiVersion": "2017-03-30",
+            "name": "[variables('imageName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "storageProfile": {
+                    "osDisk": {
+                        "osType": "Windows",
+                        "osState": "Generalized",
+                        "blobUri": "[parameters('sourceImageVhdUri')]",
+                        "storageAccountType": "Standard_LRS"                       
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "2017-06-01",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworkName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('subnetPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnetPrefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2017-07-01-preview",
+            "type": "Microsoft.Network/privateIPAddresses",
+            "name": "[parameters('lbprivateipName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "privateIPAllocationMethod": "Dynamic"
+            }
+        },
+        {
+            "apiVersion": "2017-06-01",
+            "name": "[parameters('NRP_LB')]",
+            "type": "Microsoft.Network/loadBalancers",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/privateIPAddresses/',parameters('lbprivateipName'))]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "[variables('lbFEName')]",
+                        "properties": {
+                            "privateIPAddress": "string",
+                            "id": "[variables('privateIPAddressID')]"
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('lbBEAddressPool')]"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "http",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('lbFEIPConfigID')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[variables('lbBEAddressPoolID')]"
+                            },
+                            "probe": {
+                                "id": "[variables('lbWebProbeID')]"
+                            },
+                            "protocol": "tcp",
+                            "frontendPort": "[variables('lbfrontendport')]",
+                            "backendPort": "[variables('lbbackendport')]",
+                            "enableFloatingIP": false
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "[variables('lbWebProbeName')]",
+                        "properties": {
+                            "protocol": "Http",
+                            "port": "[variables('lbbackEndLBPort')]",
+                            "intervalInSeconds": "[variables('lbprobeIntervalInSeconds')]",
+                            "numberOfProbes": "[variables('lbnumberOfProbes')]",
+                            "requestPath": "[variables('lbprobeRequestPath')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "apiVersion": "2017-03-30",
+            "name": "[parameters('virtualMachineScaleSetsname')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/loadBalancers/',parameters('NRP_LB'))]",
+                "[concat('Microsoft.Network/virtualNetworks/',variables('virtualNetworkName'))]",
+                "[concat('Microsoft.Compute/images/',variables('imageName'))]"
+            ],
+            "sku": {
+                "name": "[parameters('SkuName')]",
+                "tier": "Standard",
+                "capacity": "[parameters('SkuCapacity')]"
+            },
+            "properties": {
+                "overprovision": "true",
+                "upgradePolicy": {
+                    "mode": "Manual"
+                },
+                "virtualMachineProfile": {
+                    "storageProfile": {
+                        "imageReference": {
+                            "id": "[resourceId('Microsoft.Compute/images', variables('imageName'))]"
+                        }
+                    },
+                    "osProfile": {
+                        "computerNamePrefix": "[parameters('virtualMachineScaleSetsname')]",
+                        "adminUsername": "[parameters('adminUsername')]",
+                        "adminPassword": "[parameters('adminPassword')]"
+                    },
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [
+                            {
+                                "name": "nic1",
+                                "properties": {
+                                    "primary": "true",
+                                    "ipConfigurations": [
+                                        {
+                                            "name": "ip1",
+                                            "properties": {
+                                                "subnet": {
+                                                    "id": "[variables('subnetRef')]"
+                                                },
+                                                "loadBalancerBackendAddressPools": [
+                                                    {
+                                                        "id": "[variables('lbBEAddressPoolID')]"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}
